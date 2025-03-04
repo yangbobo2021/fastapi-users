@@ -45,6 +45,7 @@ def get_auth_router(
         "/login",
         name=f"auth:{backend.name}.login",
         responses=login_responses,
+        description="用户登录"
     )
     async def login(
         request: Request,

@@ -45,7 +45,7 @@ def get_auth_router(
         "/login",
         name=f"auth:{backend.name}.login",
         responses=login_responses,
-        description="用户登录"
+        description="用户登录，登录后access_token作为其他请求的请求头Authorization的值，格式为Bearer [access_token]",
     )
     async def login(
         request: Request,
@@ -79,7 +79,10 @@ def get_auth_router(
     }
 
     @router.post(
-        "/logout", name=f"auth:{backend.name}.logout", responses=logout_responses
+        "/logout",
+        name=f"auth:{backend.name}.logout",
+        responses=logout_responses,
+        description="用户登出",
     )
     async def logout(
         user_token: tuple[models.UP, str] = Depends(get_current_user_token),

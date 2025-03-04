@@ -18,6 +18,7 @@ def get_register_router(
         response_model=user_schema,
         status_code=status.HTTP_201_CREATED,
         name="register:register",
+        description="Register a new user.测试时可以注册管理员账号测试，确保相关操作接口有对应权限。",
         responses={
             status.HTTP_400_BAD_REQUEST: {
                 "model": ErrorModel,
@@ -53,7 +54,7 @@ def get_register_router(
     ):
         try:
             created_user = await user_manager.create(
-                user_create, safe=True, request=request
+                user_create, safe=False, request=request
             )
         except exceptions.UserAlreadyExists:
             raise HTTPException(

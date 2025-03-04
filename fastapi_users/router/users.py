@@ -42,6 +42,7 @@ def get_users_router(
                 "description": "Missing token or inactive user.",
             },
         },
+        description="Get the currently authenticated user.需要管理员权限。",
     )
     async def me(
         user: models.UP = Depends(get_current_active_user),
@@ -83,6 +84,7 @@ def get_users_router(
                 },
             },
         },
+        description="Update the currently authenticated user.需要管理员权限。",
     )
     async def update_me(
         request: Request,
@@ -125,6 +127,7 @@ def get_users_router(
                 "description": "The user does not exist.",
             },
         },
+        description="Get a user by its ID.需要管理员权限。",
     )
     async def get_user(user=Depends(get_user_or_404)):
         return schemas.model_validate(user_schema, user)
@@ -170,6 +173,7 @@ def get_users_router(
                 },
             },
         },
+        description="Update a user by its ID.需要管理员权限。",
     )
     async def update_user(
         user_update: user_update_schema,  # type: ignore
@@ -213,6 +217,7 @@ def get_users_router(
                 "description": "The user does not exist.",
             },
         },
+        description="Delete a user by its ID.需要管理员权限。",
     )
     async def delete_user(
         request: Request,

@@ -55,6 +55,7 @@ def get_oauth_router(
         "/authorize",
         name=f"oauth:{oauth_client.name}.{backend.name}.authorize",
         response_model=OAuth2AuthorizeResponse,
+        description="Redirect the user to the OAuth provider for authorization.",
     )
     async def authorize(
         request: Request, scopes: list[str] = Query(None)

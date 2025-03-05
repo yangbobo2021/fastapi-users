@@ -18,7 +18,23 @@ def get_register_router(
         response_model=user_schema,
         status_code=status.HTTP_201_CREATED,
         name="register:register",
-        description="Register a new user.测试时可以注册管理员账号测试，确保相关操作接口有对应权限。",
+        description="""
+        注册新用户。
+        
+        此接口允许创建新用户账号，需要提供用户基本信息，包括电子邮件和密码。
+        
+        请求体应包含：
+        - email: 有效的电子邮件地址（必填）
+        - password: 用户密码（必填）
+        - is_active: 是否激活账号（可选，默认为True）
+        - is_superuser: 是否为超级用户（可选，默认为False）
+        - is_verified: 是否已验证（可选，默认为False）
+        
+        成功注册后返回创建的用户信息（不包含密码）。
+        
+        注意：在API测试环境中，可以通过设置is_superuser=True来注册管理员账号，以便测试需要管理员权限的接口。
+        在生产环境中应当限制此权限。
+        """,
         responses={
             status.HTTP_400_BAD_REQUEST: {
                 "model": ErrorModel,

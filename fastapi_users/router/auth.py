@@ -45,7 +45,26 @@ def get_auth_router(
         "/login",
         name=f"auth:{backend.name}.login",
         responses=login_responses,
-        description="用户登录，登录后access_token作为其他请求的请求头Authorization的值，格式为Bearer [access_token]",
+        description="""
+        用户登录接口。
+        
+        此接口接收用户凭证并返回访问令牌（access token）。
+        
+        请求体应包含以下表单数据：
+        - username: 用户名，通常是用户的电子邮件地址
+        - password: 用户密码
+        
+        成功登录后将返回：
+        - access_token: 访问令牌，用于后续请求的身份验证
+        - token_type: 令牌类型，通常为"bearer"
+        
+        使用方法：登录成功后，在后续请求中将access_token添加到请求头的Authorization字段中，
+        格式为 "Bearer {access_token}"
+        
+        例如：Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        
+        注意：如果启用了验证要求（requires_verification=True），未验证的用户将无法登录。
+        """,
     )
     async def login(
         request: Request,
@@ -82,7 +101,21 @@ def get_auth_router(
         "/logout",
         name=f"auth:{backend.name}.logout",
         responses=logout_responses,
-        description="用户登出",
+        description="""
+        用户登出接口。
+        
+        此接口使当前用户的访问令牌失效，实现安全登出。
+        
+        请求需要包含有效的Authorization请求头，格式为 "Bearer {access_token}"，
+        其中access_token是之前登录时获取的令牌。
+        
+        成功登出后，之前的访问令牌将不再有效，需要重新登录获取新的令牌。
+        
+        注意：
+        - 此请求必须是已认证状态（需要有效的访问令牌）
+        - 如果令牌缺失或已失效，将返回401 Unauthorized错误
+        - 登出后，使用相同令牌的后续请求将被拒绝
+        """,
     )
     async def logout(
         user_token: tuple[models.UP, str] = Depends(get_current_user_token),

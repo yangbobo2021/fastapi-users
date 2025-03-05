@@ -1,0 +1,7 @@
+services:
+  fastapi-users:
+    image: ghcr.io/yangbobo2021/fastapi-users
+    container_name: fastapi-users
+    ports:
+      - 8080:8000
+    restart: always

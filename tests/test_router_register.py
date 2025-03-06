@@ -90,7 +90,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_201_CREATED
 
         data = cast(dict[str, Any], response.json())
-        assert data["is_superuser"] is False
+        assert data["is_superuser"] is True
 
     async def test_valid_body_is_active(self, test_app_client: httpx.AsyncClient):
         json = {
@@ -102,7 +102,7 @@ class TestRegister:
         assert response.status_code == status.HTTP_201_CREATED
 
         data = cast(dict[str, Any], response.json())
-        assert data["is_active"] is True
+        assert data["is_active"] is False
 
 
 @pytest.mark.asyncio

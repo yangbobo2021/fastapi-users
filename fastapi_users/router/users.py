@@ -273,10 +273,11 @@ def get_users_router(
         - 调用者必须具有超级管理员权限（is_superuser=True）
         
         安全特性：
-        - 此接口在非安全模式下运行（safe=False），允许管理员修改所有用户字段（除电子邮箱外）
+        - 此接口在非安全模式下运行（safe=False），允许管理员修改所有用户字段
         - 管理员可以激活/停用用户账号，授予/撤销超级管理员权限
         
         可能的错误：
+        - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
         - 403 Forbidden: 调用者不具备超级管理员权限
@@ -298,10 +299,8 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         try:
-            # 移除电子邮箱字段，不允许更新
-            if hasattr(user_update, "email"):
-                user_update.email = None
-                
+            user_update.email = None
+            
             user = await user_manager.update(
                 user_update, user, safe=False, request=request
             )

@@ -300,6 +300,7 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         try:
+            user_update.email = None
             user = await user_manager.update(
                 user_update, user, safe=False, request=request
             )

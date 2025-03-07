@@ -264,6 +264,7 @@ def get_users_router(
         - id: 目标用户的唯一标识符
         
         请求体（所有字段都是可选的）：
+        - email: 新的电子邮件地址
         - password: 新的密码
         - is_active: 是否激活账号
         - is_superuser: 是否为超级用户
@@ -299,8 +300,6 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         try:
-            user_update.email = None
-            
             user = await user_manager.update(
                 user_update, user, safe=False, request=request
             )

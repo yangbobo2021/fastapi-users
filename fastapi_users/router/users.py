@@ -264,7 +264,6 @@ def get_users_router(
         - id: 目标用户的唯一标识符
         
         请求体（所有字段都是可选的）：
-        - email: 新的电子邮件地址
         - password: 新的密码
         - is_active: 是否激活账号
         - is_superuser: 是否为超级用户
@@ -278,7 +277,6 @@ def get_users_router(
         - 管理员可以激活/停用用户账号，授予/撤销超级管理员权限
         
         可能的错误：
-        - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
         - 403 Forbidden: 调用者不具备超级管理员权限
@@ -300,6 +298,8 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         try:
+            user_update.email = None
+            
             user = await user_manager.update(
                 user_update, user, safe=False, request=request
             )

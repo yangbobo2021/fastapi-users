@@ -1,11 +1,5 @@
 name: ci-cd
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - examples/sqlalchemy/**
-      - fastapi_users/**
+on: [push]
 jobs:
   ci-cd:
     permissions:
@@ -24,8 +18,6 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
           images: |
             ghcr.io/${{ github.repository }}
       - name: Build and push Docker images
@@ -46,4 +38,5 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
+            sed -i 's/^.*image:.*$/    image: ghcr.io\/yangbobo2021\/fastapi-users:${{ github.head_ref || github.ref_name }}/' /root/fastapi-users/compose.yml
             cd /root/fastapi-users && docker-compose up -d --pull always

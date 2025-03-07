@@ -300,6 +300,12 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         try:
+            # 将email设为None，确保不更新邮箱
+            user_update_dict = user_update.dict(exclude_unset=True)
+            if "email" in user_update_dict:
+                user_update_dict.pop("email")
+                user_update = user_update_schema(**user_update_dict)
+            
             user = await user_manager.update(
                 user_update, user, safe=False, request=request
             )

@@ -214,7 +214,7 @@ def get_users_router(
     @router.patch(
         "/{id}",
         response_model=user_schema,
-        dependencies=[Depends(get_current_superuser)],
+        dependencies=[],
         name="users:patch_user",
         responses={
             status.HTTP_401_UNAUTHORIZED: {
@@ -255,10 +255,10 @@ def get_users_router(
         description="""
         通过用户 ID 更新特定用户的信息。
         
-        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置。
+        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，普通用户也可以修改自己的信息。
         
         请求头要求：
-        - Authorization: Bearer {access_token}，必须包含有效的超级管理员访问令牌
+        - Authorization: Bearer {access_token}，必须包含有效的访问令牌
         
         路径参数：
         - id: 目标用户的唯一标识符
@@ -266,22 +266,23 @@ def get_users_router(
         请求体（所有字段都是可选的）：
         - email: 新的电子邮件地址
         - password: 新的密码
-        - is_active: 是否激活账号
-        - is_superuser: 是否为超级用户
-        - is_verified: 是否已验证
+        - is_active: 是否激活账号（仅超级管理员可修改）
+        - is_superuser: 是否为超级用户（仅超级管理员可修改）
+        - is_verified: 是否已验证（仅超级管理员可修改）
         
         权限要求：
-        - 调用者必须具有超级管理员权限（is_superuser=True）
+        - 超级管理员可以修改任何用户的所有信息
+        - 普通用户只能修改自己的信息，且不能修改权限相关字段
         
         安全特性：
-        - 此接口在非安全模式下运行（safe=False），允许管理员修改所有用户字段
-        - 管理员可以激活/停用用户账号，授予/撤销超级管理员权限
+        - 超级管理员在非安全模式下运行（safe=False），允许修改所有用户字段
+        - 普通用户在安全模式下运行（safe=True），无法修改权限相关字段
         
         可能的错误：
         - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
-        - 403 Forbidden: 调用者不具备超级管理员权限
+        - 403 Forbidden: 尝试修改其他用户的信息但没有超级管理员权限
         - 404 Not Found: 指定 ID 的用户不存在
         
         返回：更新后的用户完整信息
@@ -291,19 +292,36 @@ def get_users_router(
         - 重置用户密码
         - 管理用户权限
         - 激活或停用用户账号
+        - 用户修改自己的信息
         """,
     )
     async def update_user(
         user_update: user_update_schema,  # type: ignore
         request: Request,
         user=Depends(get_user_or_404),
+        current_user: models.UP = Depends(get_current_active_user),
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
-        try:
+        # 检查权限：只有超级管理员可以修改其他用户，普通用户只能修改自己
+        is_self = current_user.id == user.id
+        is_superuser = current_user.is_superuser
+        
+        if not is_self and not is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to modify this user.",
+            )
+        
+        # 设置安全模式：超级管理员可以修改所有字段，普通用户只能修改安全字段
+        safe_mode = not is_superuser
+        
+        # 普通用户不能修改自己的email
+        if not is_superuser:
             user_update.email = None
-            
+        
+        try:
             user = await user_manager.update(
-                user_update, user, safe=False, request=request
+                user_update, user, safe=safe_mode, request=request
             )
             return schemas.model_validate(user_schema, user)
         except exceptions.InvalidPasswordException as e:

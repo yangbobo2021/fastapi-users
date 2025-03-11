@@ -255,7 +255,7 @@ def get_users_router(
         description="""
         通过用户 ID 更新特定用户的信息。
         
-        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，普通用户也可以修改自己的信息。
+        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，普通用户可以修改自己的信息。
         
         请求头要求：
         - Authorization: Bearer {access_token}，必须包含有效的访问令牌
@@ -272,17 +272,17 @@ def get_users_router(
         
         权限要求：
         - 超级管理员可以修改任何用户的所有信息
-        - 普通用户只能修改自己的信息，且不能修改权限相关字段
+        - 普通用户只能修改自己的信息，且只能修改允许的字段
         
         安全特性：
         - 超级管理员在非安全模式下运行（safe=False），允许修改所有用户字段
-        - 普通用户在安全模式下运行（safe=True），无法修改权限相关字段
+        - 普通用户在安全模式下运行（safe=True），只能修改允许的字段
         
         可能的错误：
         - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
-        - 403 Forbidden: 尝试修改其他用户的信息但没有超级管理员权限
+        - 403 Forbidden: 尝试修改其他用户信息但没有超级管理员权限
         - 404 Not Found: 指定 ID 的用户不存在
         
         返回：更新后的用户完整信息
@@ -303,25 +303,18 @@ def get_users_router(
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         # 检查权限：只有超级管理员可以修改其他用户，普通用户只能修改自己
-        is_self = current_user.id == user.id
-        is_superuser = current_user.is_superuser
-        
-        if not is_self and not is_superuser:
+        if str(current_user.id) != str(user.id) and not current_user.is_superuser:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to modify this user.",
+                detail="You don't have permission to modify this user",
             )
-        
-        # 设置安全模式：超级管理员可以修改所有字段，普通用户只能修改安全字段
-        safe_mode = not is_superuser
-        
-        # 普通用户不能修改自己的email
-        if not is_superuser:
-            user_update.email = None
-        
+            
+        # 确定安全模式：超级管理员使用非安全模式，普通用户使用安全模式
+        safe = not current_user.is_superuser
+            
         try:
             user = await user_manager.update(
-                user_update, user, safe=safe_mode, request=request
+                user_update, user, safe=safe, request=request
             )
             return schemas.model_validate(user_schema, user)
         except exceptions.InvalidPasswordException as e:

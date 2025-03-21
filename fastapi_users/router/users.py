@@ -272,27 +272,27 @@ def get_users_router(
         
         权限要求：
         - 超级管理员可以修改任何用户的所有信息
-        - 普通用户只能修改自己的信息，且不能修改权限相关字段
+        - 普通用户只能修改自己的信息，且只能修改允许的字段（如电子邮件和密码）
         
         安全特性：
         - 超级管理员在非安全模式下运行（safe=False），允许修改所有用户字段
-        - 普通用户在安全模式下运行（safe=True），只能修改允许的字段
+        - 普通用户在安全模式下运行（safe=True），无法提升自己的权限
         
         可能的错误：
         - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
-        - 403 Forbidden: 尝试修改其他用户信息但没有超级管理员权限
+        - 403 Forbidden: 尝试修改其他用户信息但不具备超级管理员权限
         - 404 Not Found: 指定 ID 的用户不存在
         
         返回：更新后的用户完整信息
         
         使用场景：
         - 管理员修改用户信息
+        - 用户修改自己的个人资料
         - 重置用户密码
         - 管理用户权限
         - 激活或停用用户账号
-        - 用户修改自己的个人信息
         """,
     )
     async def update_user(
@@ -306,7 +306,7 @@ def get_users_router(
         if str(current_user.id) != str(user.id) and not current_user.is_superuser:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to modify this user",
+                detail="Not a superuser.",
             )
             
         # 确定安全模式：超级管理员使用非安全模式，普通用户使用安全模式

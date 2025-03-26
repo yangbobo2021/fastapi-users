@@ -255,7 +255,7 @@ def get_users_router(
         description="""
         通过用户 ID 更新特定用户的信息。
         
-        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，同时也允许普通用户修改自己的信息。
+        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，普通用户也可以修改自己的信息。
         
         请求头要求：
         - Authorization: Bearer {access_token}，必须包含有效的访问令牌
@@ -282,7 +282,7 @@ def get_users_router(
         - 400 Bad Request: 新电子邮件地址已被其他用户使用
         - 400 Bad Request: 新密码不符合系统安全要求
         - 401 Unauthorized: 未提供访问令牌、令牌无效或已过期
-        - 403 Forbidden: 尝试修改其他用户信息但没有超级管理员权限
+        - 403 Forbidden: 尝试修改其他用户信息但不具备超级管理员权限
         - 404 Not Found: 指定 ID 的用户不存在
         
         返回：更新后的用户完整信息
@@ -292,7 +292,7 @@ def get_users_router(
         - 重置用户密码
         - 管理用户权限
         - 激活或停用用户账号
-        - 普通用户更新自己的个人信息
+        - 用户修改自己的个人信息
         """,
     )
     async def update_user(
@@ -302,14 +302,14 @@ def get_users_router(
         current_user: models.UP = Depends(get_current_active_user),
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
-        # 检查权限：只有超级用户可以修改其他用户，普通用户只能修改自己
+        # 检查权限：只有超级管理员可以修改其他用户，普通用户只能修改自己
         if str(current_user.id) != str(user.id) and not current_user.is_superuser:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not a superuser.",
             )
             
-        # 确定安全模式：超级用户可以修改所有字段，普通用户只能修改安全字段
+        # 确定安全模式：超级管理员可以修改所有字段，普通用户只能修改安全字段
         safe = not current_user.is_superuser or str(current_user.id) == str(user.id)
             
         try:

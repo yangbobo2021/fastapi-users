@@ -214,7 +214,7 @@ def get_users_router(
     @router.patch(
         "/{id}",
         response_model=user_schema,
-        dependencies=[],
+        dependencies=[Depends(get_current_active_user)],
         name="users:patch_user",
         responses={
             status.HTTP_401_UNAUTHORIZED: {
@@ -255,7 +255,7 @@ def get_users_router(
         description="""
         通过用户 ID 更新特定用户的信息。
         
-        此接口允许超级管理员修改系统中任何用户的个人资料和权限设置，普通用户也可以修改自己的信息。
+        此接口允许用户修改自己的信息，或者超级管理员修改任何用户的信息。
         
         请求头要求：
         - Authorization: Bearer {access_token}，必须包含有效的访问令牌
@@ -271,12 +271,12 @@ def get_users_router(
         - is_verified: 是否已验证（仅超级管理员可修改）
         
         权限要求：
-        - 超级管理员可以修改任何用户的所有信息
-        - 普通用户只能修改自己的信息，且只能修改允许的字段（如电子邮件和密码）
+        - 普通用户只能修改自己的信息，且只能修改允许的字段
+        - 超级管理员可以修改任何用户的所有字段
         
         安全特性：
-        - 超级管理员在非安全模式下运行（safe=False），允许修改所有用户字段
         - 普通用户在安全模式下运行（safe=True），无法提升自己的权限
+        - 超级管理员在非安全模式下运行（safe=False），可以修改所有用户字段
         
         可能的错误：
         - 400 Bad Request: 新电子邮件地址已被其他用户使用
@@ -288,18 +288,18 @@ def get_users_router(
         返回：更新后的用户完整信息
         
         使用场景：
+        - 用户修改自己的信息
         - 管理员修改用户信息
         - 重置用户密码
         - 管理用户权限
         - 激活或停用用户账号
-        - 用户修改自己的个人信息
         """,
     )
     async def update_user(
         user_update: user_update_schema,  # type: ignore
         request: Request,
-        user=Depends(get_user_or_404),
         current_user: models.UP = Depends(get_current_active_user),
+        user=Depends(get_user_or_404),
         user_manager: BaseUserManager[models.UP, models.ID] = Depends(get_user_manager),
     ):
         # 检查权限：只有超级管理员可以修改其他用户，普通用户只能修改自己
@@ -309,9 +309,9 @@ def get_users_router(
                 detail="Not a superuser.",
             )
             
-        # 确定安全模式：超级管理员可以修改所有字段，普通用户只能修改安全字段
-        safe = not current_user.is_superuser or str(current_user.id) == str(user.id)
-            
+        # 确定安全模式：超级管理员使用非安全模式，普通用户使用安全模式
+        safe = not current_user.is_superuser
+        
         try:
             user = await user_manager.update(
                 user_update, user, safe=safe, request=request
